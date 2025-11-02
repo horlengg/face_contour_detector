@@ -4,6 +4,7 @@ version: 0.0.1
 homepage: https://github.com/horlengg/face_contour_detector
 repository: https://github.com/horlengg/face_contour_detector
 issue_tracker: https://github.com/horlengg/face_contour_detector/issues
+license: MIT
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
