@@ -4,6 +4,7 @@ A Flutter plugin for detecting face contours in rgb image.
 
 - Currently support only android and in future I'll add feature for support iOS.
 - This plugin take time 20ms -> 80ms for detect face contour from image base on image size.
+- Get demo apk here : https://github.com/horlengg/face_contour_detector/blob/dev/example/face_contour_detector.apk
 
 
 ---
@@ -24,13 +25,18 @@ Need initialize the detector before using it:
 
 ```dart
 
+import 'package:face_contour_detector/face_contour_detector.dart';
+
 bool status = await FaceContourDetectorPlatform.instance.initialize();
 
 ```
 
 ## Detect Faces from Image
 ```dart
+
 List<FaceBox> faces = await FaceContourDetectorPlatform.instance.detectFromImage(imageBytes);
+
+
 ```
 
 
