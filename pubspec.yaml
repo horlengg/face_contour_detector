@@ -6,8 +6,8 @@ repository: https://github.com/horlengg/face_contour_detector
 issue_tracker: https://github.com/horlengg/face_contour_detector/issues
 
 environment:
-  sdk: ">=3.0.0 <4.0.0" 
-  flutter: ">=3.0.0 <4.0.0"
+  sdk: ">=3.0.0"
+  flutter: ">=3.0.0"
 
 
 dependencies:
