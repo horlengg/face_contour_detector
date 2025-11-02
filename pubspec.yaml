@@ -1,8 +1,9 @@
 name: face_contour_detector
-description: "A new Flutter plugin project."
+description: "A Flutter plugin for detecting face contours in rgb image."
 version: 0.0.1
-author: Leng Dev
 homepage: https://github.com/horlengg/face_contour_detector
+repository: https://github.com/horlengg/face_contour_detector
+issue_tracker: https://github.com/horlengg/face_contour_detector/issues
 
 environment:
   sdk: ">=3.0.0 <4.0.0" 

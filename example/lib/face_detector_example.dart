@@ -56,13 +56,11 @@ class _FaceDetectorExampleState extends State<FaceDetectorExample> {
       _selectedImage = File(image.path);
       final Uint8List imageBytes = await image.readAsBytes();
       final decodeImage = img.decodeImage(imageBytes);
-      print("status : ${decodeImage != null}");
       if(decodeImage != null){
         _selectedImageSize = Size(decodeImage.width.toDouble(),decodeImage.height.toDouble());
         final startDate = DateTime.now();
         faces = await FaceContourDetectorPlatform.instance.detectFromImage(imageBytes);
         duration = "Toatl durarion : ${DateTime.now().difference(startDate).inMilliseconds} ms";
-        print("duration : $duration");
       }
     } catch (e) {
       _selectedImage = null;
