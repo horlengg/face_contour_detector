@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:face_contour_detector/models/face_box.dart';
+import 'package:flutter/animation.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'face_contour_detector_method_channel.dart';
@@ -36,12 +36,12 @@ abstract class FaceContourDetectorPlatform extends PlatformInterface {
   }
 
   /// Detect faces from image bytes (JPEG, PNG, etc.)
-  Future<List<FaceBox>> detectFromImage(Uint8List imageBytes){
+  Future<List<Rect>> detectFromImage(Uint8List imageBytes){
     throw UnimplementedError('detectFromImage() has not been implemented.');
   }
 
   /// Detect faces from YUV420 camera data
-  Future<List<FaceBox>> detectFromYuv({
+  Future<List<Rect>> detectFromYuv({
     required Uint8List yuvBytes,
     required int width,
     required int height,

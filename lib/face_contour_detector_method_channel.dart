@@ -1,4 +1,4 @@
-import 'package:face_contour_detector/models/face_box.dart';
+
 import 'package:face_contour_detector/models/face_detector_exception.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -35,21 +35,28 @@ class MethodChannelFaceContourDetector extends FaceContourDetectorPlatform {
   }
 
   @override
-  Future<List<FaceBox>> detectFromImage(Uint8List imageBytes) async {
+  Future<List<Rect>> detectFromImage(Uint8List imageBytes) async {
     if (!_isInitialized) {
       throw FaceDetectorException('Detector not initialized');
     }
     try {
-      final List<dynamic>? result = await methodChannel.invokeMethod(
+      final result = await methodChannel.invokeMethod<List<dynamic>>(
         'detectFromImage',
         {'imageBytes': imageBytes},
       );
 
       if (result == null) return [];
 
-      return result
-          .map((face) => FaceBox.fromMap(face as Map<dynamic, dynamic>))
-          .toList();
+      return result.map((rect){
+        final json = Map.from(rect);
+        return Rect.fromLTRB(
+          json["x"]?.toDouble() ?? 0,
+          json["y"]?.toDouble() ?? 0,
+          json["right"]?.toDouble() ?? 0,
+          json["bottom"]?.toDouble() ?? 0
+        );
+      }).toList();
+
     } on PlatformException catch (e) {
       throw FaceDetectorException(
         'Detection failed: ${e.message}',
@@ -59,7 +66,7 @@ class MethodChannelFaceContourDetector extends FaceContourDetectorPlatform {
   }
 
   @override
-  Future<List<FaceBox>> detectFromYuv({
+  Future<List<Rect>> detectFromYuv({
     required Uint8List yuvBytes,
     required int width,
     required int height,
@@ -70,7 +77,7 @@ class MethodChannelFaceContourDetector extends FaceContourDetectorPlatform {
     }
 
     try {
-      final List<dynamic>? result = await methodChannel.invokeMethod(
+      final result = await methodChannel.invokeMethod<List<dynamic>>(
         'detectFromYuv',
         {
           'yuvBytes': yuvBytes,
@@ -82,9 +89,16 @@ class MethodChannelFaceContourDetector extends FaceContourDetectorPlatform {
 
       if (result == null) return [];
 
-      return result
-          .map((face) => FaceBox.fromMap(face as Map<dynamic, dynamic>))
-          .toList();
+      return result.map((rect){
+        final json = Map.from(rect);
+        return Rect.fromLTRB(
+          json["x"]?.toDouble() ?? 0,
+          json["y"]?.toDouble() ?? 0,
+          json["right"]?.toDouble() ?? 0,
+          json["bottom"]?.toDouble() ?? 0
+        );
+      }).toList();
+
     } on PlatformException catch (e) {
       throw FaceDetectorException(
         'Detection failed: ${e.message}',

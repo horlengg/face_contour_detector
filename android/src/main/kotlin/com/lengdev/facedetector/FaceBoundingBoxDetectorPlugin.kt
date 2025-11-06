@@ -10,6 +10,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import java.io.ByteArrayOutputStream
 import android.util.Log
+import kotlinx.coroutines.*
 
 /** FaceBoundingBoxDetectorPlugin */
 class FaceBoundingBoxDetectorPlugin: FlutterPlugin, MethodCallHandler {
@@ -63,53 +64,73 @@ class FaceBoundingBoxDetectorPlugin: FlutterPlugin, MethodCallHandler {
     }
 
     private fun initialize(result: Result) {
-        try {
-            if (faceDetector != null) {
-                result.error("ALREADY_INITIALIZED", "Detector already initialized", null)
-                return
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                if (faceDetector != null) {
+                    faceDetector?.destroy()
+                    faceDetector = null
+                }
+                faceDetector = FaceDetector()
+                val loadResult = faceDetector?.loadModel(flutterPluginBinding.applicationContext.assets)
+                
+                withContext(Dispatchers.Main) {
+                    if (loadResult == 0) {
+                        result.success(true)
+                    } else {
+                        result.error("INITIALIZATION_ERROR", "Failed to initialize detector!.", null)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    result.error("INITIALIZATION_ERROR", "Failed to initialize detector: ${e.message}", null)
+                }
             }
-            faceDetector = FaceDetector()
-            val loadResult = faceDetector?.loadModel(flutterPluginBinding.applicationContext.assets)
-            if(loadResult == 0) result.success(true)
-            else result.error("INITIALIZATION_ERROR","Failed to initialize detector!.",null)
-        } catch (e: Exception) {
-            result.error("INITIALIZATION_ERROR", "Failed to initialize detector: ${e.message}", null)
         }
     }
 
     private fun detectFromImage(imageBytes: ByteArray, result: Result) {
-        try {
-            Log.d("FaceBoundingBoxPlugin","detectFromImage() started....")
-            if (faceDetector == null) {
-                result.error("NOT_INITIALIZED", "Detector not initialized", null)
-                return
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                if (faceDetector == null) {
+                    withContext(Dispatchers.Main) {
+                        result.error("NOT_INITIALIZED", "Detector not initialized", null)
+                    }
+                    return@launch
+                }
+                
+                val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                if (bitmap == null) {
+                    withContext(Dispatchers.Main) {
+                        result.error("INVALID_IMAGE", "Failed to decode image", null)
+                    }
+                    return@launch
+                }
+                
+                // Convert to ARGB_8888 if needed
+                val argbBitmap = if (bitmap.config != Bitmap.Config.ARGB_8888) {
+                    bitmap.copy(Bitmap.Config.ARGB_8888, false)
+                } else {
+                    bitmap
+                }
+                
+                val faces = faceDetector?.detect(argbBitmap)
+
+                val faceList = faces?.map { faceBoxToMap(it) } ?: emptyList()
+                
+                bitmap.recycle()
+                if (argbBitmap != bitmap) {
+                    argbBitmap.recycle()
+                }
+                
+                withContext(Dispatchers.Main) {
+                    result.success(faceList)
+                }
+            } catch (e: Exception) {
+                Log.d("Face Detector", "Detection failed: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    result.error("DETECTION_ERROR", "Detection failed: ${e.message}", null)
+                }
             }
-            
-            val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-            if (bitmap == null) {
-                result.error("INVALID_IMAGE", "Failed to decode image", null)
-                return
-            }
-            
-            // Convert to ARGB_8888 if needed
-            val argbBitmap = if (bitmap.config != Bitmap.Config.ARGB_8888) {
-                bitmap.copy(Bitmap.Config.ARGB_8888, false)
-            } else {
-                bitmap
-            }
-            
-            val faces = faceDetector?.detect(argbBitmap)
-            val faceList = faces?.map { faceBoxToMap(it) } ?: emptyList()
-            Log.d("Face Detector","faceList : $faceList")
-            bitmap.recycle()
-            if (argbBitmap != bitmap) {
-                argbBitmap.recycle()
-            }
-            
-            result.success(faceList)
-        } catch (e: Exception) {
-            Log.d("Face Detector","Detection failed: ${e.message}")
-            result.error("DETECTION_ERROR", "Detection failed: ${e.message}", null)
         }
     }
 
@@ -120,31 +141,47 @@ class FaceBoundingBoxDetectorPlugin: FlutterPlugin, MethodCallHandler {
         orientation: Int,
         result: Result
     ) {
-        try {
-            Log.d("FaceBoundingBoxPlugin","detectFromYuv() started....")
-            if (faceDetector == null) {
-                result.error("NOT_INITIALIZED", "Detector not initialized", null)
-                return
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                
+                if (faceDetector == null) {
+                    withContext(Dispatchers.Main) {
+                        result.error("NOT_INITIALIZED", "Detector not initialized", null)
+                    }
+                    return@launch
+                }
+                
+                val faces = faceDetector?.detect(yuvBytes, width, height, orientation)
+                val faceList = faces?.map { faceBoxToMap(it) } ?: emptyList()
+                
+                withContext(Dispatchers.Main) {
+                    result.success(faceList)
+                }
+            } catch (e: IllegalArgumentException) {
+                withContext(Dispatchers.Main) {
+                    result.error("INVALID_ARGUMENT", e.message, null)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    result.error("DETECTION_ERROR", "Detection failed: ${e.message}", null)
+                }
             }
-            
-            val faces = faceDetector?.detect(yuvBytes, width, height, orientation)
-            val faceList = faces?.map { faceBoxToMap(it) } ?: emptyList()
-            
-            result.success(faceList)
-        } catch (e: IllegalArgumentException) {
-            result.error("INVALID_ARGUMENT", e.message, null)
-        } catch (e: Exception) {
-            result.error("DETECTION_ERROR", "Detection failed: ${e.message}", null)
         }
     }
 
     private fun destroy(result: Result) {
-        try {
-            faceDetector?.destroy()
-            faceDetector = null
-            result.success(true)
-        } catch (e: Exception) {
-            result.error("DESTROY_ERROR", "Failed to destroy detector: ${e.message}", null)
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                faceDetector?.destroy()
+                faceDetector = null
+                withContext(Dispatchers.Main) {
+                    result.success(true)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    result.error("DESTROY_ERROR", "Failed to destroy detector: ${e.message}", null)
+                }
+            }
         }
     }
 
